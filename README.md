@@ -14,7 +14,7 @@ Easy, fast, and cheap LLM serving for everyone
 | <a href="https://docs.vllm.ai"><b>Documentation</b></a> | <a href="https://blog.vllm.ai/"><b>Blog</b></a> | <a href="https://arxiv.org/abs/2309.06180"><b>Paper</b></a> | <a href="https://x.com/vllm_project"><b>Twitter/X</b></a> | <a href="https://discuss.vllm.ai"><b>User Forum</b></a> | <a href="https://slack.vllm.ai"><b>Developer Slack</b></a> |
 </p>
 
-**MI250 fork.** Build and serve the mixed Inkling 2 Small checkpoint on one four-card node using the [MI250 serving guide](docs/serving/inkling2_mi250.md). It includes the validation status and a multi-user benchmark.
+**MI250 fork.** Build and serve the mixed Inkling 2 Small checkpoint on one four-card node using the [MI250 serving guide](docs/serving/inkling2_mi250.md). It includes the validation status and a multi-user benchmark. The [project conversation notes](docs/serving/inkling2_mi250_project_notes.md) explain the choice of upstream branch and the four-card serving configuration.
 
 🔥 We have built a vLLM website to help you get started with vLLM. Please visit [vllm.ai](https://vllm.ai) to learn more.
 For events, please visit [vllm.ai/events](https://vllm.ai/events) to join us.
