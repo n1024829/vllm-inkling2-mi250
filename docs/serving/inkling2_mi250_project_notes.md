@@ -10,7 +10,7 @@ The original request was to run Inkling 2 Small on as many AMD Instinct MI250s a
 
 The author of [vLLM PR 67685](https://github.com/vllm-project/vllm/pull/67685) reported serving the all-MXFP8 model with continuous batching on four MI355X GPUs. That work supplied the model integration, attention, cache handling and distributed serving code. Its expert kernels target CDNA4. The MI250 uses CDNA2, and the selected [official checkpoint](https://huggingface.co/thinkingmachines/Inkling-2-Small) contains both NVFP4 and MXFP8 expert weights. Adding cards provides memory but leaves both compatibility problems to solve.
 
-The fork starts at PR revision `a6aa3ad9e8b1a7f2c5800b41156f621a2390c62a`. Commit `f08ccaa018fe2ecf060ecc34bef78fa7bbf0eb1a` adds a gfx90a path that keeps expert weights packed, decodes tiles for 16-bit matrix operations, and groups routed tokens from multiple requests by local expert.
+The fork starts at PR revision `a6aa3ad9e8b1a7f2c5800b41156f621a2390c62a`. The [GitHub implementation commit](https://github.com/n1024829/vllm-inkling2-mi250/commit/8ca652d60e84611521a0ab1ad94aa526448702b6) has the same Git tree as commit `f08ccaa018fe2ecf060ecc34bef78fa7bbf0eb1a` in the original download. It adds a gfx90a path that keeps expert weights packed, decodes tiles for 16-bit matrix operations, and groups routed tokens from multiple requests by local expert.
 
 ## How should the cards be shared?
 

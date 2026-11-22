@@ -4,6 +4,14 @@ This experimental branch targets the official mixed NVFP4/MXFP8 checkpoint on a 
 
 ## Build and launch
 
+For a fresh GitHub checkout, select the serving branch explicitly. The following commands fetch its history and give the Docker build the same version tag as the downloadable checkout. The tag is local to this clone.
+
+```bash
+git clone --branch inkling2-mi250 https://github.com/n1024829/vllm-inkling2-mi250.git
+cd vllm-inkling2-mi250
+git tag v0.33.0rc2+mi250.1 8ca652d60e84611521a0ab1ad94aa526448702b6
+```
+
 Run the commands in the root of this fork. Use a Linux ROCm host with Docker Buildx, access to the eight devices, and disk space for the build and the roughly 394 GB checkpoint. Keep the Git metadata and the fork release tag when building: the Dockerfile uses git describe to version the wheel. The bake file included in this revision builds its ROCm dependencies. CPU-only build hosts can compile the image. Large builds need substantial disk, RAM and time.
 
 ```bash
