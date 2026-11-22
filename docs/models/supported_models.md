@@ -719,12 +719,11 @@ Some models are supported only via the [Transformers modeling backend](#transfor
     - Gemma 4 Unified assistant checkpoints (`model_type: gemma4_unified_assistant`) use the same MTP path as the tower-based variant. See the [Gemma 4 assistant model MTP example](../features/speculative_decoding/mtp.md#gemma-4-assistant-models).
 
 !!! note
-    On ROCm, `Inkling2ForConditionalGeneration` requires CDNA4 (MI350 series) and a
-    checkpoint whose routed experts are all MXFP8, such as
-    `thinkingmachines/Inkling-2-Small-MXFP8`: the NVFP4 experts of
-    `thinkingmachines/Inkling-2-Small` run on CUDA only. It is validated at
-    `--tensor-parallel-size 4` on MI355X, with DSpark speculative decoding enabled by
-    the same `--speculative-config` as on CUDA. LoRA is not supported on ROCm.
+    MI355X (CDNA4) has a validated TP4 all-MXFP8 path with DSpark.
+    This fork adds an experimental gfx90a path for the original mixed checkpoint.
+    See [Inkling 2 Small on MI250](../serving/inkling2_mi250.md) for the TP8 build,
+    text-serving configuration, validation status and multi-user benchmark.
+    LoRA is unsupported on ROCm.
 
 !!! note
     For `InternVLChatModel`, only InternVL2.5 with Qwen2.5 text backbone (`OpenGVLab/InternVL2.5-1B` etc.), InternVL3 and InternVL3.5 have video inputs support currently.

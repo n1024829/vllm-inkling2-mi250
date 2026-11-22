@@ -5,6 +5,7 @@
 
 import torch
 
+from vllm.platforms.rocm import on_gfx90a
 from vllm.triton_utils import tl, triton
 
 
@@ -104,6 +105,9 @@ def k_group_partials(
     n = weight.shape[0]
     block_m = 16 if tokens <= 128 else 64
     block_n = 32 if tokens <= 16 else 64 if tokens <= 256 else 128
+    if on_gfx90a():
+        block_n = min(block_n, 64)
+        block_m = min(block_m, 32)
     groups = triton.cdiv(hidden, 1024)
     split = groups > 1 and tokens < 4096
     out = torch.empty(
@@ -128,7 +132,7 @@ def k_group_partials(
         split,
         num_warps=4 if block_n <= 64 else 8,
         # gfx950's 160 KB of LDS fits two stages of the largest tiles.
-        num_stages=2,
+        num_stages=1 if on_gfx90a() else 2,
         enable_fp_fusion=False,
     )
     return out

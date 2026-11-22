@@ -2,9 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """Per-tensor precision metadata of Inkling2 checkpoints (hf_quant_config.json).
 
-Only the routed experts are quantized (NVFP4 or MXFP8); they are handled by
-`Inkling2MoE`, which runs MXFP8 experts only. Every other layer runs
-unquantized.
+Only the routed experts use NVFP4 or MXFP8. Every other layer runs unquantized.
 """
 
 from __future__ import annotations
@@ -25,13 +23,13 @@ _COMPUTE_DTYPES = ("float32", "bfloat16", "mxfp8", "nvfp4")
 class Inkling2QuantConfig(QuantizationConfig):
     def __init__(self, config: dict[str, Any]) -> None:
         super().__init__()
-        self.mxfp8_weights: set[str] = set()
+        self.expert_formats: dict[str, str] = {}
         for group in config["model"]["parameter_groups"]:
             compute = group["compute_dtype"]
             if compute not in _COMPUTE_DTYPES:
                 raise ValueError(f"Unsupported Inkling2 compute dtype: {compute}")
-            if compute == "mxfp8":
-                self.mxfp8_weights.update(group["tensors"])
+            if compute in ("mxfp8", "nvfp4"):
+                self.expert_formats.update(dict.fromkeys(group["tensors"], compute))
 
     @classmethod
     def get_name(cls) -> QuantizationMethods:
@@ -43,8 +41,9 @@ class Inkling2QuantConfig(QuantizationConfig):
 
     @classmethod
     def get_min_capability(cls) -> int:
-        # The MXFP8 experts run on gfx950's scaled MFMA.
-        return 95
+        from vllm.platforms.rocm import on_gfx90a
+
+        return 90 if on_gfx90a() else 95
 
     @staticmethod
     def get_config_filenames() -> list[str]:
@@ -59,6 +58,11 @@ class Inkling2QuantConfig(QuantizationConfig):
     ) -> QuantizeMethodBase | None:
         return None
 
-    def is_mxfp8_layer(self, layer_id: int) -> bool:
-        name = f"model.llm.layers.{layer_id}.mlp.experts.w13_weight"
-        return name in self.mxfp8_weights
+    def expert_format(self, layer_id: int) -> str:
+        prefix = f"model.llm.layers.{layer_id}.mlp.experts."
+        fmt = self.expert_formats.get(prefix + "w13_weight")
+        if fmt is None or fmt != self.expert_formats.get(prefix + "w2_weight"):
+            raise ValueError(
+                f"Missing or inconsistent Inkling expert formats at layer {layer_id}"
+            )
+        return fmt

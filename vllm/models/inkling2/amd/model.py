@@ -32,6 +32,7 @@ from vllm.model_executor.models.interfaces import (
 )
 from vllm.model_executor.models.utils import _merge_multimodal_embeddings
 from vllm.multimodal import MULTIMODAL_REGISTRY
+from vllm.platforms.rocm import on_gfx90a, on_gfx950
 from vllm.sequence import IntermediateTensors
 from vllm.v1.worker.encoder_cudagraph_defs import (
     EncoderCudaGraphCaptureInputs,
@@ -48,7 +49,7 @@ from ..processing import (
     Inkling2ProcessingInfo,
 )
 from .attention import Inkling2Attention
-from .moe import Inkling2MoE
+from .moe import Cdna2MoE, Inkling2MoE
 from .ops.attention import compute_log_scaling_tau
 from .ops.attn_res import attn_res
 from .ops.norm import rms_norm
@@ -149,13 +150,16 @@ class Inkling2DecoderLayer(nn.Module):
             config.hidden_size, eps, num_inputs=self.num_attn_inputs
         )
         self.mlp_norm = Inkling2RMSNorm(config.hidden_size, eps)
-        if quant_config is None or not quant_config.is_mxfp8_layer(layer_id):
-            raise ValueError(
-                f"Inkling2 on ROCm runs MXFP8 experts only (layer {layer_id} "
-                "is not MXFP8); use an all-MXFP8 checkpoint such as "
-                "Inkling-2-Small-MXFP8"
-            )
-        self.mlp = Inkling2MoE(config)
+        if quant_config is None:
+            raise ValueError("Inkling2 needs expert formats from hf_quant_config.json")
+        self.mlp: Inkling2MoE
+        fmt = quant_config.expert_format(layer_id)
+        if on_gfx90a():
+            self.mlp = Cdna2MoE(config, nvfp4=fmt == "nvfp4")
+        elif fmt == "mxfp8":
+            self.mlp = Inkling2MoE(config)
+        else:
+            raise ValueError("Inkling2 on gfx950 requires an all-MXFP8 checkpoint")
         self.attn_sconv, self.mlp_sconv = (
             Inkling2ShortConv(
                 config.hidden_size, config.sconv_kernel_size, self.conv_state, stream
@@ -325,13 +329,9 @@ class Inkling2ForConditionalGeneration(
         quant_config = vllm_config.quant_config
         assert quant_config is None or isinstance(quant_config, Inkling2QuantConfig)
         assert vllm_config.parallel_config.pipeline_parallel_size == 1
-        from vllm.platforms.rocm import on_gfx950
 
-        if not on_gfx950():
-            raise ValueError(
-                "Inkling2 on ROCm requires gfx950 (CDNA4, MI350 series): its "
-                "kernels are written and validated for that architecture only"
-            )
+        if not (on_gfx950() or on_gfx90a()):
+            raise ValueError("Inkling2 on ROCm requires gfx950 or gfx90a")
         if vllm_config.model_config.enable_prompt_embeds:
             # The reference applies embed_norm to raw input embeddings, which
             # cannot be told apart from already-normalized ones here.

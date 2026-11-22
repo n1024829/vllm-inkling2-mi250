@@ -232,6 +232,19 @@ steps:
 
 #-----------------------------------------------------  mi250 · models / language  -----------------------------------------------------#
 
+- label: ":amd: (MI250) Inkling 2 packed projections"
+  timeout_in_minutes: 20
+  mirror_hardwares: [amdexperimental, amdgfx90anightly, amdmi250]
+  dind: false
+  agent_pool: mi250_1
+  optional: true
+  working_dir: "/vllm-workspace/tests"
+  source_file_dependencies:
+  - vllm/models/inkling2/amd/
+  - tests/models/inkling2/test_cdna2.py
+  commands:
+  - pytest -v -s models/inkling2/test_cdna2.py -k packed_projection
+
 - label: ":amd: (MI250) Language Models (PPL)" # TBD
   timeout_in_minutes: 65
   mirror_hardwares: [amdexperimental, amdproduction, amdgfx90anightly, amdmi250]
